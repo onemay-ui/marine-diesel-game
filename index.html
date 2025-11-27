@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>柴機達人：缸蓋拆裝競速 (Diesel Master)</title>
+<style>
+  :root{
+    --verb-bg: #ADD8E6; /* light blue */
+    --part-bg: #FFFFE0; /* light yellow */
+    --slot-empty: #f5f5f5;
+    --ok: #c8f7c5;
+    --wrong: #f7c5c5;
+    --card-radius: 10px;
+    --big-font: 20px;
+    --ui-padding: 14px;
+  }
+  html,body{
+    height:100%;
+    margin:0;
+    /* 增加通用字體確保不同平台顯示 */
+    font-family: "Noto Sans TC", "Microsoft JhengHei", Arial, Helvetica, sans-serif;
+    background: linear-gradient(180deg,#f0f6fb 0%, #ffffff 100%);
+    color:#1b1b1b;
+    -webkit-font-smoothing:antialiased;
+  }
+  .container{
+    max-width:1200px;
+    margin:24px auto;
+    padding:20px;
+  }
+  header{
+    text-align:center;
+    margin-bottom:16px;
+  }
+  h1{
+    font-size:32px;
+    margin:0;
+    letter-spacing:1px;
+  }
+  p.lead{
+    margin:6px 0 16px;
+    font-size:16px;
+  }
+
+  .game-top{
+    display:flex;
+    gap:16px;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    margin-bottom:20px;
+  }
+  .timer-card{
+    background:#fff;
+    border-radius:12px;
+    padding:12px 16px;
+    box-shadow:0 6px 18px rgba(30,50,80,0.08);
+    font-size:18px;
+  }
+  .controls{
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+  button{
+    font-size:16px;
+    padding:10px 14px;
+    border-radius:10px;
+    border:1px solid rgba(0,0,0,0.08);
+    background:linear-gradient(180deg,#fff,#f5f7fa);
+    cursor:pointer;
+  }
+  button.primary{
+    background:linear-gradient(180deg,#007bff,#0066d6);
+    color:white;
+    border:none;
+  }
+  .game-area{
+    display:grid;
+    grid-template-columns: 1fr 380px;
+    gap:20px;
+  }
+
+  /* Steps column */
+  .steps{
+    background:rgba(255,255,255,0.9);
+    padding:18px;
+    border-radius:12px;
+    box-shadow:0 6px 18px rgba(30,50,80,0.05);
+  }
+  .step{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    padding:12px;
+    border-radius:10px;
+    font-size:var(--big-font);
+    margin-bottom:12px;
+    background:linear-gradient(180deg,#ffffff,#fbfdff);
+    border:1px solid #eee;
+  }
+  .prompt{
+    width:380px;
+    min-width:240px;
+  }
+  .slots{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .slot{
+    min-width:160px;
+    min-height:56px;
+    border-radius:10px;
+    background:var(--slot-empty);
+    border:2px dashed rgba(0,0,0,0.06);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:6px;
+    text-align:center;
+    position:relative;
+    font-weight:600;
+    cursor: pointer;
+  }
+  .slot.verb-slot{
+    width:180px;
+  }
+  .slot.part-slot{
+    width:220px;
+  }
+  .slot .placed-card{
+    width:100%;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:6px;
+    border-radius:8px;
+    cursor:default;
+    box-shadow:0 3px 8px rgba(0,0,0,0.06);
+    position:relative;
+    font-size:18px;
+  }
+  .placed-card .remove-btn{
+    position:absolute;
+    top:4px;
+    right:6px;
+    background:transparent;
+    border:none;
+    font-weight:bold;
+    cursor:pointer;
+    color:#333;
+    font-size:14px;
+  }
+
+  /* Pools column */
+  .pools{
+    background:rgba(255,255,255,0.95);
+    padding:18px;
+    border-radius:12px;
+    box-shadow:0 6px 18px rgba(30,50,80,0.05);
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .pool-section{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .pool-title{
+    font-size:18px;
+    font-weight:700;
+  }
+  .pool{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    padding:10px;
+    border-radius:10px;
+    border:1px dashed rgba(0,0,0,0.04);
+    background:linear-gradient(180deg,#fff,#fbfdff);
+    min-height:80px;
+  }
+  .card{
+    padding:10px 12px;
+    min-width:120px;
+    border-radius:var(--card-radius);
+    box-shadow:0 4px 12px rgba(10,20,40,0.05);
+    font-size:18px;
+    font-weight:700;
+    cursor:pointer;
+    user-select:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: transform 0.2s, box-shadow 0.2s; /* 添加過渡效果 */
+  }
+  .card.verb{
+    background:var(--verb-bg);
+    color:#03314b;
+    border:2px solid rgba(0,0,0,0.06);
+  }
+  .card.part{
+    background:var(--part-bg);
+    color:#2b2b00;
+    border:2px solid rgba(0,0,0,0.06);
+  }
+
+  /* NEW: 點選卡片時的視覺效果 (藍色光暈與提升) */
+  .card.selected {
+    box-shadow: 0 0 0 3px #007bff, 0 6px 16px rgba(0, 123, 255, 0.4);
+    transform: translateY(-2px);
+  }
+
+  .hint{
+    font-size:14px;
+    color:#444;
+  }
+
+  /* feedback states */
+  .slot.correct{
+    background:var(--ok);
+    border-style:solid;
+    border-color: #78d97a;
+  }
+  .slot.incorrect{
+    background:var(--wrong);
+    border-style:solid;
+    border-color:#f06b6b;
+  }
+
+  /* Review Page Styles */
+  .review-area {
+    background:rgba(255,255,255,0.9);
+    padding:30px;
+    border-radius:12px;
+    box-shadow:0 6px 18px rgba(30,50,80,0.05);
+  }
+  .review-area h2 {
+    font-size: 28px;
+    margin-bottom: 10px;
+    color: #0066d6;
+  }
+  .review-step {
+    background: #f8f8f8;
+    padding: 15px;
+    border-radius: 10px;
+    border-left: 5px solid #007bff;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+  .review-step .prompt-text {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1b1b1b;
+    margin-bottom: 4px;
+  }
+  .review-step .command-text {
+    font-size: 16px;
+    color: #555;
+    font-style: italic;
+    margin-top: 5px;
+  }
+  .review-step .correct-combo {
+    font-weight: bold;
+    color: #38761d;
+    display: block;
+    font-size: 17px;
+  }
+
+  /* small screens */
+  @media (max-width:980px){
+    .game-area{
+      grid-template-columns: 1fr;
+    }
+    .prompt{ width:100%; }
+    .slot.part-slot{ width:160px; }
+    .slot.verb-slot{ width:120px; }
+  }
+
+  /* bounce animation for wrong */
+  @keyframes bounceBack {
+    0% { transform: translateY(0); }
+    30% { transform: translateY(-12px); }
+    60% { transform: translateY(0); }
+    100% { transform: translateY(-6px); }
+  }
+  .bounce {
+    animation: bounceBack 600ms ease;
+  }
+
+  footer{
+    margin-top:18px;
+    text-align:center;
+    color:#666;
+    font-size:14px;
+  }
+
+</style>
+</head>
+<body>
+  <div class="container" role="application" aria-label="柴機達人：缸蓋拆裝競速">
+    <header>
+      <h1>柴機達人：缸蓋拆裝競速</h1>
+            <p class="lead">拆卸步驟流程重建 — 請選取正確的動詞卡和零件卡，放入步驟空槽，並按「提交」檢查答案。</p>
+    </header>
+
+    <div class="game-top">
+      <div class="timer-card" id="timerCard">
+        <div>計時器：<strong id="timer">00:00.000</strong></div>
+        <div style="font-size:13px;color:#666;margin-top:6px;">嘗試次數：<span id="attempts">0</span></div>
+      </div>
+
+      <div class="controls">
+        <button id="resetBtn">重置</button>
+        <button id="reviewBtn">檢視答案</button> 
+        <button id="submitBtn" class="primary">提交</button>
+      </div>
+    </div>
+
+        <main id="gameMain" class="game-area">
+      <section class="steps" aria-label="拆卸步驟區">
+              </section>
+
+      <aside class="pools" aria-label="卡片區">
+        <div class="pool-section">
+          <div class="pool-title">動詞卡 (點選使用)</div>
+          <div id="verbPool" class="pool" aria-dropeffect="copy"></div>
+          <div class="hint">動詞卡背景為淺藍色。點選卡片，再點選步驟空槽。</div>
+        </div>
+
+        <div class="pool-section">
+          <div class="pool-title">零件卡 (點選使用)</div>
+          <div id="partPool" class="pool" aria-dropeffect="copy"></div>
+          <div class="hint">零件卡背景為淺黃色。點選卡片，再點選步驟空槽。</div>
+        </div>
+      </aside>
+    </main>
+    
+        <section id="reviewPage" class="review-area" style="display:none;">
+      <h2>✅ 缸蓋拆裝：正確步驟總覽</h2>
+      <p class="lead">這是完整的拆卸步驟和對應的英文指令，供您複習與核對。</p>
+      <div id="reviewStepsContainer">
+              </div>
+      <button id="backToGameBtn" class="primary" style="margin-top: 20px;">返回遊戲</button>
+    </section>
+
+    <footer>
+      提示：點選卡片後，該卡片會發光，再點選空槽放入；已放置的卡片可按右上角 × 移回卡片區；語音將朗讀每個正確步驟的英文指令。
+    </footer>
+  </div>
+
+<script defer>
+/* ============================
+   CORE DATA (from user)
+   ============================ */
+const VERB_CARDS = [
+  { english: "Set", chinese: "設定" },
+  { english: "Close", chinese: "關閉" },
+  { english: "Vent", chinese: "排氣" },
+  { english: "Remove", chinese: "移除" },
+  { english: "Dismount", chinese: "拆下" },
+  { english: "Disconnect", chinese: "斷開" },
+  { english: "Loosen", chinese: "鬆開" },
+  { english: "Lift away", chinese: "吊離" },
+  { english: "Unscrew", chinese: "旋下" },
+  { english: "Attach", chinese: "連接" }
+];
+
+const PART_CARDS = [
+  { english: "Block position", chinese: "鎖定位置" },
+  { english: "Starting air inlet", chinese: "起動空氣進口" },
+  { english: "Hydraulic high-pressure pipe", chinese: "液壓高壓油管" },
+  { english: "Cooling water pipe", chinese: "冷卻水管" },
+  { english: "Control air pipe", chinese: "控制氣管" },
+  { english: "Exhaust valve control air pipe", chinese: "排氣閥控制氣管" },
+  { english: "Cylinder cover", chinese: "缸蓋" },
+  { english: "Protective jacket", chinese: "保護套" },
+  { english: "Lifting attachment", chinese: "吊裝附件" },
+  { english: "Nuts", chinese: "螺帽" }
+];
+
+const DISMANTLE_STEPS = [
+  { id: "D1", prompt: "1. 設定起動裝置於鎖定位置。", verb: "Set", object: "Block position", command: "Set block position." },
+  { id: "D2", prompt: "2. 關閉起動空氣進口的主閥。", verb: "Close", object: "Starting air inlet", command: "Close the main valve for the starting air inlet." },
+  { id: "D3", prompt: "3. 洩掉高壓油管的壓力。", verb: "Vent", object: "Hydraulic high-pressure pipe", command: "Vent the pressure from the hydraulic high-pressure pipe." },
+  { id: "D4", prompt: "4. 拆下冷卻水管。", verb: "Remove", object: "Cooling water pipe", command: "Remove the cooling water pipe." },
+  { id: "D5", prompt: "5. 拆下控制氣管。", verb: "Disconnect", object: "Control air pipe", command: "Disconnect the control air pipe." },
+  { id: "D6", prompt: "6. 拆下排氣閥的控制氣管。", verb: "Disconnect", object: "Exhaust valve control air pipe", command: "Disconnect the exhaust valve control air pipe." },
+  { id: "D7", prompt: "7. 拆下所有高壓油管。", verb: "Dismount", object: "Hydraulic high-pressure pipe", command: "Dismount the hydraulic high-pressure pipe." },
+  { id: "D8", prompt: "8. 拆下保護套。", verb: "Remove", object: "Protective jacket", command: "Remove the protective jacket." },
+  { id: "D9", prompt: "9. 鬆開缸蓋螺帽。", verb: "Loosen", object: "Nuts", command: "Loosen the cylinder cover nuts." },
+  { id: "D10", prompt: "10. 吊離缸蓋。", verb: "Lift away", object: "Cylinder cover", command: "Lift away the cylinder cover." }
+];
+
+/* ============================
+   UI & Game State
+   ============================ */
+
+const verbPool = document.getElementById('verbPool');
+const partPool = document.getElementById('partPool');
+const stepsContainer = document.querySelector('.steps');
+const submitBtn = document.getElementById('submitBtn');
+const resetBtn = document.getElementById('resetBtn');
+const timerEl = document.getElementById('timer');
+const attemptsEl = document.getElementById('attempts');
+
+// NEW elements
+const reviewBtn = document.getElementById('reviewBtn');
+const reviewPage = document.getElementById('reviewPage');
+const backToGameBtn = document.getElementById('backToGameBtn');
+const reviewStepsContainer = document.getElementById('reviewStepsContainer');
+const gameMain = document.getElementById('gameMain');
+
+let placedMap = {}; // { stepId: { verb: 'Set', object: 'Block position' } }
+let attempts = 0;
+let startTime = null;
+let timerInterval = null;
+
+// State for Click-to-Place
+let selectedCard = null; // Stores the selected card element
+
+/* Timer helpers (Unchanged) */
+function formatElapsed(ms){
+  const total = ms;
+  const minutes = Math.floor(total / 60000);
+  const seconds = Math.floor((total % 60000) / 1000);
+  const millis = total % 1000;
+  return `${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}.${String(millis).padStart(3,'0')}`;
+}
+function startTimer(){
+  if(startTime) return;
+  startTime = performance.now();
+  timerInterval = setInterval(()=>{
+    const now = performance.now();
+    timerEl.textContent = formatElapsed(Math.floor(now - startTime));
+  }, 40);
+}
+function stopTimer(){
+  if(timerInterval) clearInterval(timerInterval);
+  timerInterval = null;
+  if(startTime){
+    const final = Math.floor(performance.now() - startTime);
+    timerEl.textContent = formatElapsed(final);
+  }
+}
+
+/* ============================
+   Render functions
+   ============================ */
+
+function clearCardSelection() {
+    if (selectedCard) {
+        // Remove the 'selected' class for better visual feedback
+        selectedCard.classList.remove('selected');
+        selectedCard = null;
+    }
+}
+
+function onCardClick(e) {
+    // Start timer on first user action
+    startTimer();
+
+    clearCardSelection();
+    
+    selectedCard = e.currentTarget;
+    // Highlight the selected card using class
+    selectedCard.classList.add('selected');
+}
+
+function createCardElement(text, category, extra={}) {
+  const el = document.createElement('div');
+  el.className = `card ${category}`;
+  el.setAttribute('role','button');
+  el.dataset.category = category;
+  el.dataset.english = text;
+  if(extra.chinese) el.dataset.chinese = extra.chinese;
+  el.textContent = text;
+  
+  // Use click handler
+  el.addEventListener('click', onCardClick);
+  
+  return el;
+}
+
+function populatePools(){
+  VERB_CARDS.forEach(v=>{
+    const card = createCardElement(v.english, 'verb', {chinese:v.chinese});
+    verbPool.appendChild(card);
+  });
+  PART_CARDS.forEach(p=>{
+    const card = createCardElement(p.english, 'part', {chinese:p.chinese});
+    partPool.appendChild(card);
+  });
+}
+
+function onSlotClick(e) {
+    const slot = e.currentTarget;
+
+    // 1. Check if a card is selected
+    if (!selectedCard) {
+        // No card selected, flash the slot to hint
+        slot.classList.add('bounce');
+        setTimeout(() => slot.classList.remove('bounce'), 600);
+        return;
+    }
+
+    const payload = {
+        english: selectedCard.dataset.english,
+        category: selectedCard.dataset.category,
+    };
+    
+    // 2. Place the card using the unified logic
+    handleCardPlacement(slot, payload);
+    
+    // 3. Clear selection state
+    clearCardSelection();
+}
+
+function renderSteps(){
+  stepsContainer.innerHTML = '';
+  DISMANTLE_STEPS.forEach(step=>{
+    const stepEl = document.createElement('div');
+    stepEl.className = 'step';
+    stepEl.id = `step-${step.id}`;
+
+    const prompt = document.createElement('div');
+    prompt.className = 'prompt';
+    prompt.textContent = step.prompt;
+
+    const slots = document.createElement('div');
+    slots.className = 'slots';
+
+    const verbSlot = document.createElement('div');
+    verbSlot.className = 'slot verb-slot';
+    verbSlot.dataset.stepId = step.id;
+    verbSlot.dataset.slotType = 'verb';
+    verbSlot.setAttribute('aria-label', `${step.id} 動詞槽`);
+    verbSlot.textContent = '點選動詞';
+    // Add click listener to slot
+    verbSlot.addEventListener('click', onSlotClick);
+
+    const partSlot = document.createElement('div');
+    partSlot.className = 'slot part-slot';
+    partSlot.dataset.stepId = step.id;
+    partSlot.dataset.slotType = 'part';
+    partSlot.setAttribute('aria-label', `${step.id} 零件槽`);
+    partSlot.textContent = '點選零件';
+    // Add click listener to slot
+    partSlot.addEventListener('click', onSlotClick);
+
+    slots.appendChild(verbSlot);
+    slots.appendChild(partSlot);
+
+    stepEl.appendChild(prompt);
+    stepEl.appendChild(slots);
+    stepsContainer.appendChild(stepEl);
+  });
+}
+
+/* ============================
+   Placement Logic (Unified)
+   ============================ */
+
+function createPlacedCard(payload){
+  const wrapper = document.createElement('div');
+  wrapper.className = 'placed-card';
+  wrapper.dataset.category = payload.category;
+  wrapper.dataset.english = payload.english;
+  wrapper.textContent = payload.english;
+
+  // remove button to return to pool
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'remove-btn';
+  removeBtn.title = '移回卡片區';
+  removeBtn.innerHTML = '×';
+  removeBtn.addEventListener('click', (ev)=>{
+    // remove placed card from slot
+    const slot = wrapper.parentElement;
+    if(slot){
+      slot.innerHTML = slot.dataset.slotType === 'verb' ? '點選動詞' : '點選零件';
+      slot.classList.remove('correct','incorrect');
+      delete placedMap[slot.dataset.stepId];
+    }
+    ev.stopPropagation();
+  });
+  wrapper.appendChild(removeBtn);
+  return wrapper;
+}
+
+function handleCardPlacement(slot, payload){
+  const slotType = slot.dataset.slotType; // 'verb' or 'part'
+
+  // Check if the selected card type matches the slot type
+  if(!payload || payload.category !== slotType) {
+    // visual shake wrong type (no need to shake the pool card, only the slot)
+    slot.classList.add('bounce');
+    setTimeout(()=>slot.classList.remove('bounce'), 600);
+    return;
+  }
+  
+  // If slot already contains placed-card, replace it
+  slot.classList.remove('correct','incorrect');
+  slot.innerHTML = '';
+  const placed = createPlacedCard(payload);
+  slot.appendChild(placed);
+
+  // update placedMap
+  const stepId = slot.dataset.stepId;
+  if(!placedMap[stepId]) placedMap[stepId] = {};
+  if(slotType === 'verb') placedMap[stepId].verb = payload.english;
+  else placedMap[stepId].object = payload.english;
+}
+
+/* ============================
+   Review Page Logic (Unchanged)
+   ============================ */
+
+function renderReviewPage() {
+    reviewStepsContainer.innerHTML = '';
+    DISMANTLE_STEPS.forEach(step => {
+        const stepEl = document.createElement('div');
+        stepEl.className = 'review-step';
+
+        const prompt = document.createElement('div');
+        prompt.className = 'prompt-text';
+        prompt.textContent = step.prompt;
+
+        const combo = document.createElement('span');
+        combo.className = 'correct-combo';
+        combo.textContent = `✅ 正確答案：${step.verb} + ${step.object}`;
+
+        const command = document.createElement('div');
+        command.className = 'command-text';
+        command.textContent = `(英文指令: ${step.command})`;
+
+        stepEl.appendChild(prompt);
+        stepEl.appendChild(combo);
+        stepEl.appendChild(command);
+        reviewStepsContainer.appendChild(stepEl);
+    });
+}
+
+function toggleView(viewName) {
+    if (viewName === 'game') {
+        gameMain.style.display = 'grid'; // Use 'grid' as defined in CSS
+        reviewPage.style.display = 'none';
+    } else if (viewName === 'review') {
+        gameMain.style.display = 'none';
+        reviewPage.style.display = 'block';
+        renderReviewPage(); // Render content when switching to review
+    }
+}
+
+/* ============================
+   Speech Synthesis Logic (FIXED for Mobile)
+   ============================ */
+let voicesLoaded = false;
+let englishVoice = null;
+
+// Function to load voices and set English voice
+function loadVoices() {
+    if (voicesLoaded) return;
+    const voices = window.speechSynthesis.getVoices();
+    // Try to find any English voice
+    englishVoice = voices.find(v => v.lang.startsWith('en')) || voices.find(v => v.name.includes('English')) || voices[0];
+    if (englishVoice) {
+        voicesLoaded = true;
+    } 
+}
+// Listen for voiceschanged event (which is required by some browsers)
+if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+
+function speakText(text){
+  if(!('speechSynthesis' in window)) return;
+  
+  // If voices haven't loaded yet, try to load them synchronously once
+  if (!voicesLoaded) {
+      loadVoices();
+  }
+
+  const utter = new SpeechSynthesisUtterance(text);
+  if(englishVoice) utter.voice = englishVoice;
+  utter.lang = 'en-US';
+  utter.rate = 0.95;
+  
+  // Mobile fix: ensure speech is triggered after a user action context.
+  window.speechSynthesis.cancel(); // cancel any ongoing
+  window.speechSynthesis.speak(utter);
+}
+
+function givePositiveFeedback(slotEl){
+  slotEl.classList.remove('incorrect');
+  slotEl.classList.add('correct');
+}
+
+function giveNegativeFeedback(slotEl){
+  slotEl.classList.remove('correct');
+  slotEl.classList.add('incorrect');
+  slotEl.classList.add('bounce');
+  setTimeout(()=>slotEl.classList.remove('bounce'),700);
+}
+
+/* When wrong, we remove the placed card (bounce back) */
+function returnPlacedCardToPool(slotEl){
+  // simply clear slot content and visual
+  const slotType = slotEl.dataset.slotType;
+  slotEl.innerHTML = (slotType === 'verb' ? '點選動詞' : '點選零件');
+  slotEl.classList.remove('incorrect');
+  delete placedMap[slotEl.dataset.stepId];
+}
+
+function checkAllSteps(){
+  attempts++;
+  attemptsEl.textContent = attempts;
+  let allCorrect = true;
+  clearCardSelection(); // Clear selection on submit
+
+  // For each step, check verb & object match
+  DISMANTLE_STEPS.forEach(step=>{
+    const stepId = step.id;
+    const slotVerb = document.querySelector(`#step-${stepId} .verb-slot`);
+    const slotPart = document.querySelector(`#step-${stepId} .part-slot`);
+    const placed = placedMap[stepId] || {};
+    const verbMatch = placed.verb && placed.verb.trim() === step.verb;
+    const partMatch = placed.object && placed.object.trim() === step.object;
+
+    if(verbMatch && partMatch){
+      // correct
+      givePositiveFeedback(slotVerb);
+      givePositiveFeedback(slotPart);
+      speakText(step.command);
+      // lock slots by disabling remove button (if any)
+      const rv = slotVerb.querySelector('.remove-btn');
+      const rp = slotPart.querySelector('.remove-btn');
+      if(rv) rv.style.display = 'none';
+      if(rp) rp.style.display = 'none';
+    } else {
+      allCorrect = false;
+      // mark wrong; then return cards
+      if(slotVerb.querySelector('.placed-card')){
+        giveNegativeFeedback(slotVerb);
+      }
+      if(slotPart.querySelector('.placed-card')){
+        giveNegativeFeedback(slotPart);
+      }
+      // after short delay, return placed cards to pool (so user can try again)
+      setTimeout(()=>{
+        if(slotVerb.querySelector('.placed-card')) returnPlacedCardToPool(slotVerb);
+        if(slotPart.querySelector('.placed-card')) returnPlacedCardToPool(slotPart);
+      }, 800);
+    }
+  });
+
+  if(allCorrect){
+    stopTimer();
+    const finalTime = timerEl.textContent;
+    setTimeout(()=>{
+      alert(`恭喜！你完成所有步驟！\n總時間：${finalTime}\n嘗試次數：${attempts}`);
+    }, 200);
+  }
+}
+
+/* ============================
+   Reset (Unchanged)
+   ============================ */
+
+function resetGame(){
+  clearCardSelection(); // Clear selection state on reset
+  placedMap = {};
+  attempts = 0;
+  attemptsEl.textContent = attempts;
+  startTime = null;
+  if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  timerEl.textContent = '00:00.000';
+  renderSteps();
+  verbPool.innerHTML = '';
+  partPool.innerHTML = '';
+  populatePools();
+  // Ensure we are on the game view
+  toggleView('game');
+}
+
+/* ============================
+   Init
+   ============================ */
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  renderSteps();
+  populatePools();
+  startTimer();
+
+  submitBtn.addEventListener('click', (e)=>{
+    checkAllSteps();
+  });
+  resetBtn.addEventListener('click', (e)=>{
+    if(window.speechSynthesis) window.speechSynthesis.cancel();
+    resetGame();
+  });
+  
+  // Review Button Listeners
+  reviewBtn.addEventListener('click', ()=>{
+    toggleView('review');
+  });
+  backToGameBtn.addEventListener('click', ()=>{
+    toggleView('game');
+  });
+
+  // Call loadVoices once at the start to try and initialize
+  if(window.speechSynthesis && !voicesLoaded){
+    loadVoices();
+  }
+});
+</script>
+</body>
+</html>
